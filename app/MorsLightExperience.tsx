@@ -8,6 +8,21 @@ type HtmlCanvas = HTMLCanvasElement & {
   requestPaint?: () => void;
 };
 
+type HtmlCanvasWindow = Window & {
+  __HTML_IN_CANVAS_POLYFILL__?: boolean;
+};
+
+type ElementTexturePrototype = {
+  texElementImage2D?: (
+    target: number,
+    level: number,
+    internalFormat: number,
+    format: number,
+    type: number,
+    source: HTMLElement,
+  ) => void;
+};
+
 type LightRig = {
   spot: THREE.SpotLight;
   bulbLight: THREE.PointLight;
@@ -43,7 +58,40 @@ const INITIAL_LIGHT: LightingSettings = {
 
 const DOWN = new THREE.Vector3(0, -1, 0);
 const UP = new THREE.Vector3(0, 1, 0);
-const BASE_LIGHT_DIRECTION = new THREE.Vector3(0, -0.79, -0.614).normalize();
+const BASE_LIGHT_DIRECTION = DOWN.clone();
+
+function installThreeHtmlTextureCompatibility() {
+  // Three r185 treats a texElementImage2D function whose declared length is 3
+  // as the native short overload. three-html-render 0.1.2 also declares three
+  // parameters, but its polyfill only implements the legacy six-argument form.
+  // Wrap only the installed polyfill so native browser implementations keep
+  // their own calling convention.
+  if (!(window as HtmlCanvasWindow).__HTML_IN_CANVAS_POLYFILL__) return;
+
+  const contextConstructors = [globalThis.WebGLRenderingContext, globalThis.WebGL2RenderingContext];
+  for (const contextConstructor of contextConstructors) {
+    if (!contextConstructor) continue;
+    const prototype = contextConstructor.prototype as ElementTexturePrototype;
+    const uploadElement = prototype.texElementImage2D;
+    if (!uploadElement || uploadElement.length !== 3) continue;
+
+    Object.defineProperty(prototype, "texElementImage2D", {
+      configurable: true,
+      writable: true,
+      value: function texElementImage2D(
+        this: WebGLRenderingContext | WebGL2RenderingContext,
+        target: number,
+        level: number,
+        internalFormat: number,
+        format: number,
+        type: number,
+        source: HTMLElement,
+      ) {
+        uploadElement.call(this, target, level, internalFormat, format, type, source);
+      },
+    });
+  }
+}
 
 export function MorsLightExperience() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +113,7 @@ export function MorsLightExperience() {
       .then(({ installHtmlInCanvasPolyfill }) => {
         if (!active) return;
         installHtmlInCanvasPolyfill();
+        installThreeHtmlTextureCompatibility();
         setHtmlCanvasReady(true);
       })
       .catch((polyfillError: unknown) => {
@@ -100,7 +149,7 @@ export function MorsLightExperience() {
     const fixedStep = 1 / 120;
     const ropeLength = 1.62;
     const gravity = new THREE.Vector3(0, -9.81, 0);
-    const anchor = new THREE.Vector3(0, 4.72, 2.42);
+    const anchor = new THREE.Vector3(0, 4.72, 1.18);
     const position = new THREE.Vector3(0.16, anchor.y - ropeLength, anchor.z + 0.08);
     const previous = position.clone().add(new THREE.Vector3(0.018, 0, -0.012));
     const aimTarget = new THREE.Vector3(0, 0.3, 0.08);
@@ -188,8 +237,12 @@ export function MorsLightExperience() {
     backing.position.z = -0.035;
     pageGroup.add(backing);
 
-    const ambient = new THREE.HemisphereLight(0x53647f, 0x080706, 0.28);
+    const ambient = new THREE.HemisphereLight(0x71809b, 0x151118, 0.58);
     scene.add(ambient);
+
+    const fillLight = new THREE.DirectionalLight(0x91a6c8, 0.24);
+    fillLight.position.set(-4.8, 5.6, 7.4);
+    scene.add(fillLight);
 
     const lampRoot = new THREE.Group();
     scene.add(lampRoot);
@@ -353,7 +406,7 @@ export function MorsLightExperience() {
       backing.scale.set(pageWidth, pageHeight, 1);
 
       pageGroup.position.y = portrait ? -0.62 : -0.38;
-      anchor.set(0, pageGroup.position.y + pageHeight / 2 + 1.52, portrait ? 2.14 : 2.42);
+      anchor.set(0, pageGroup.position.y + pageHeight / 2 + 1.52, portrait ? 1.1 : 1.18);
       ceilingCap.position.copy(anchor).add(new THREE.Vector3(0, 0.08, 0));
 
       if (!pulling) {
@@ -369,8 +422,11 @@ export function MorsLightExperience() {
       const halfFov = THREE.MathUtils.degToRad(camera.fov * 0.5);
       const distanceForHeight = fitHeight / (2 * Math.tan(halfFov));
       const distanceForWidth = fitWidth / (2 * Math.tan(halfFov) * camera.aspect);
-      camera.position.set(0, pageGroup.position.y + 0.52, Math.max(distanceForHeight, distanceForWidth));
-      camera.lookAt(0, pageGroup.position.y + 0.2, 0);
+      const cameraDistance = Math.max(distanceForHeight, distanceForWidth);
+      const cameraDrop = portrait ? 0.78 : 0.62;
+      const upwardTarget = portrait ? 0.52 : 0.68;
+      camera.position.set(0, pageGroup.position.y - cameraDrop, cameraDistance);
+      camera.lookAt(0, pageGroup.position.y + upwardTarget, 0);
       camera.updateMatrixWorld();
       interactions.update();
       canvas.requestPaint?.();
@@ -482,12 +538,7 @@ export function MorsLightExperience() {
       return true;
     }
 
-    function isInteractiveTarget(target: EventTarget | null) {
-      return target instanceof Element && Boolean(target.closest("button, input, a, [data-interactive]"));
-    }
-
     function onPointerDown(event: PointerEvent) {
-      if (isInteractiveTarget(event.target)) return;
       if (!updatePointerTarget(event)) return;
 
       pulling = true;
@@ -496,7 +547,6 @@ export function MorsLightExperience() {
       lastPointerTarget.copy(aimTarget);
       pointerVelocity.set(0, 0, 0);
       canvas.classList.add("is-pulling-light");
-      event.preventDefault();
       wake();
     }
 
@@ -509,7 +559,6 @@ export function MorsLightExperience() {
       pointerVelocity.lerp(temp, 0.34);
       lastPointerTarget.copy(aimTarget);
       lastPointerTime = now;
-      event.preventDefault();
       wake();
     }
 
@@ -564,7 +613,7 @@ export function MorsLightExperience() {
 
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("dblclick", resetMotion);
-    window.addEventListener("pointermove", onPointerMove, { passive: false });
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerUp);
     window.addEventListener("resize", onResize, { passive: true });

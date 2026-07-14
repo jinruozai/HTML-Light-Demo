@@ -45,11 +45,20 @@ test("keeps the light, controls, and simulation in the shipped source", async ()
   ]);
 
   assert.match(experience, /new THREE\.HTMLTexture/);
+  assert.match(experience, /function installThreeHtmlTextureCompatibility/);
+  assert.match(experience, /value: function texElementImage2D\(/);
+  assert.match(experience, /new THREE\.HemisphereLight/);
+  assert.match(experience, /new THREE\.DirectionalLight/);
   assert.match(experience, /new THREE\.SpotLight/);
+  assert.match(experience, /const BASE_LIGHT_DIRECTION = DOWN\.clone\(\)/);
+  assert.match(experience, /const cameraDrop = portrait/);
+  assert.match(experience, /const upwardTarget = portrait/);
   assert.match(experience, /const fixedStep = 1 \/ 120/);
   assert.match(experience, /function updatePointerTarget/);
   assert.match(experience, /pullStrength/);
   assert.match(experience, /intersectPlane/);
+  assert.doesNotMatch(experience, /isInteractiveTarget/);
+  assert.doesNotMatch(experience, /event\.preventDefault\(\)/);
   assert.match(experience, />BEAM</);
   assert.match(experience, /BRIGHTNESS/);
   assert.match(experience, />COLOR</);
