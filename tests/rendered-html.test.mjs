@@ -71,3 +71,20 @@ test("keeps the light, controls, and simulation in the shipped source", async ()
   assert.match(layout, /MORS²/);
   assert.match(packageJson, /"three-html-render"/);
 });
+
+test("keeps the GitHub Pages static deployment configured", async () => {
+  const [nextConfig, workflow, readme, experience] = await Promise.all([
+    readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8"),
+    readFile(new URL("../README.md", import.meta.url), "utf8"),
+    readFile(new URL("../app/MorsLightExperience.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(nextConfig, /output: "export"/);
+  assert.match(nextConfig, /basePath/);
+  assert.match(experience, /NEXT_PUBLIC_BASE_PATH/);
+  assert.match(workflow, /actions\/configure-pages@v5/);
+  assert.match(workflow, /actions\/upload-pages-artifact@v4/);
+  assert.match(workflow, /actions\/deploy-pages@v5/);
+  assert.match(readme, /https:\/\/jinruozai\.github\.io\/HTML-Light-Demo\//);
+});

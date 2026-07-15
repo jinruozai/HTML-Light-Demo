@@ -47,6 +47,7 @@ const CONCEPTS = {
 } as const;
 
 const COLOR_PRESETS = ["#ffb36b", "#ffd9a3", "#8fdcff", "#c79cff", "#ff5f7f"];
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const INITIAL_LIGHT: LightingSettings = {
   enabled: true,
@@ -755,7 +756,7 @@ export function MorsLightExperience() {
               <span className="page-logo-wrap">
                 {/* The logo is part of the HTMLTexture source, so keep it as a plain DOM image. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/mors-logo.svg" alt="" />
+                <img src={`${BASE_PATH}/mors-logo.svg`} alt="" />
               </span>
               <span>MORS²</span>
               <span className="page-brand-suffix">GAME ENGINE</span>

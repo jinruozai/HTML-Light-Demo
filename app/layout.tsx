@@ -1,42 +1,36 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import "./globals.css";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0];
-  const protocol = forwardedProtocol ?? (host.startsWith("localhost") ? "http" : "https");
-  const origin = new URL(`${protocol}://${host}`);
-  const previewUrl = new URL("/og.png", origin).toString();
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://jinruozai.github.io/HTML-Light-Demo/";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const publicAsset = (path: string) => new URL(`${basePath}${path}`, siteUrl).toString();
 
-  return {
-    metadataBase: origin,
-    title: {
-      default: "MORS² Game Engine",
-      template: "%s — MORS²",
-    },
-    description:
-      "MORS² is a small, elegant, high-performance Rust game engine architecture.",
-    icons: {
-      icon: "/mors-logo.svg",
-      shortcut: "/mors-logo.svg",
-    },
-    openGraph: {
-      title: "MORS² Game Engine",
-      description: "Meta is observed by Rule to Step in Space.",
-      type: "website",
-      url: origin,
-      images: [{ url: previewUrl, width: 1200, height: 630, alt: "A hanging light reveals the MORS² engine architecture." }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "MORS² Game Engine",
-      description: "Meta is observed by Rule to Step in Space.",
-      images: [previewUrl],
-    },
-  };
-}
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "MORS² Game Engine",
+    template: "%s — MORS²",
+  },
+  description:
+    "MORS² is a small, elegant, high-performance Rust game engine architecture.",
+  icons: {
+    icon: publicAsset("/mors-logo.svg"),
+    shortcut: publicAsset("/mors-logo.svg"),
+  },
+  openGraph: {
+    title: "MORS² Game Engine",
+    description: "Meta is observed by Rule to Step in Space.",
+    type: "website",
+    url: siteUrl,
+    images: [{ url: publicAsset("/og.png"), width: 1200, height: 630, alt: "A hanging light reveals the MORS² engine architecture." }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MORS² Game Engine",
+    description: "Meta is observed by Rule to Step in Space.",
+    images: [publicAsset("/og.png")],
+  },
+};
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
