@@ -4,6 +4,8 @@
 
 An interactive **HTML-in-Canvas** lighting experiment powered by Three.js.
 
+<p><strong>An unofficial recreation of <a href="https://x.com/kaolti">@kaolti</a>'s project.</strong></p>
+
 <a href="https://jinruozai.github.io/HTML-Light-Demo/">
   <img src="https://img.shields.io/badge/Live_Demo-Open-2ea44f?style=for-the-badge&logo=githubpages&logoColor=white" alt="Open the online demo" />
 </a>
@@ -68,10 +70,9 @@ npm test
 
 ## Credits
 
-This is an unofficial recreation inspired by
-[@kaolti](https://x.com/kaolti). The original concept and art direction are
-credited to @kaolti. This independent implementation was created for learning
-and demonstration and is not officially affiliated with the original creator.
+Original concept and art direction by [@kaolti](https://x.com/kaolti). This
+independent implementation was created for learning and demonstration and is
+not officially affiliated with the original creator.
 
 ## License
 
